@@ -9,16 +9,16 @@
     "*://*.edu.*"
   ],
   "action": {
-    "default_popup": "popup/popup.html",
+    "default_popup": "src/popup/popup.html",
     "default_title": "BBB Slide Switcher"
   },
   "background": {
-    "service_worker": "background/background.ts"
+    "service_worker": "src/background/background.ts"
   },
   "content_scripts": [
     {
       "matches": ["*://*/bigbluebutton/*", "*://*.edu.*"],
-      "js": ["content/content.ts"]
+      "js": ["src/content/content.ts"]
     }
   ]
 }
