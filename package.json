@@ -10,6 +10,8 @@
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.0.0",
+    "@types/chrome": "^0.1.39",
+    "@types/node": "^25.5.2",
     "typescript": "^5.3.3",
     "vite": "^5.0.8"
   }
