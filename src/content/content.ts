@@ -41,5 +41,72 @@ function changeSlide(direction: 'next' | 'prev'): number | null {
   return newSlide;
 }
 
+function handleMessage(
+  message: Message,
+  sender: chrome.runtime.MessageSender,
+  sendResponse: (response?: any) => void
+): boolean {
+  switch (message.type) {
+    case 'GET_CURRENT_SLIDE': {
+      const slideNumber = getCurrentSlideNumber();
+      sendResponse({ slideNumber });
+      return false;
+    }
+    case 'NEXT_SLIDE': {
+      const slideNumber = changeSlide('next');
+      if (slideNumber !== null) {
+        chrome.runtime.sendMessage({
+          type: 'SLIDE_NUMBER_CHANGED',
+          slideNumber,
+        });
+      }
+      sendResponse({ slideNumber });
+      return false;
+    }
+    case 'PREV_SLIDE': {
+      const slideNumber = changeSlide('prev');
+      if (slideNumber !== null) {
+        chrome.runtime.sendMessage({
+          type: 'SLIDE_NUMBER_CHANGED',
+          slideNumber,
+        });
+      }
+      sendResponse({ slideNumber });
+      return false;
+    }
+    default:
+      return false;
+  }
+}
+
+let debounceTimer: number;
+
+function setupObserver(): void {
+  const img = getSlideImage();
+  if (!img) return;
+
+  const observer = new MutationObserver(() => {
+    clearTimeout(debounceTimer);
+    debounceTimer = window.setTimeout(() => {
+      const slideNumber = getCurrentSlideNumber();
+      if (slideNumber !== null) {
+        chrome.runtime.sendMessage({
+          type: 'SLIDE_NUMBER_CHANGED',
+          slideNumber,
+        });
+      }
+    }, 200); // debounce time in ms
+  });
+
+  // watch only src changes
+  observer.observe(img, {
+    attributes: true,
+    attributeFilter: ['src'],
+  });
+}
+
+chrome.runtime.onMessage.addListener(handleMessage);
+setupObserver();
+
 export { getSlideImage, getCurrentSlideNumber, changeSlide };
 

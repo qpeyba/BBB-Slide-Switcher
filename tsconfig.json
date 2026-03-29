@@ -10,7 +10,8 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "types": ["chrome"]
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
