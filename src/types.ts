@@ -8,13 +8,9 @@ export enum MessageType {
   SET_FOLLOW_PRESENTER = 'SET_FOLLOW_PRESENTER',
 }
 
-export interface SlideInfo {
-  slideNumber: number;
-}
-
 export interface Message {
   type: MessageType;
-  payload?: SlideInfo;
+  slideNumber?: number;
 }
 
 export const STORAGE_KEYS = {

@@ -1,4 +1,4 @@
-import { MessageType, Message, SlideInfo } from '../types';
+import { MessageType, Message } from '../types';
 
 const SLIDE_SELECTORS = [
   '#slide-background-shape_image',
@@ -33,7 +33,7 @@ function changeSlide(direction: 'next' | 'prev'): number | null {
 
   const newSlide = direction === 'next' ? currentSlide + 1 : currentSlide - 1;
   if (newSlide < 1) return null;
-
+  
   // Replace /svg/N with /svg/(N±1) in the image src
   const newSrc = img.src.replace(/\/svg\/\d+$/, `/svg/${newSlide}`);
   img.src = newSrc;
@@ -47,27 +47,27 @@ function handleMessage(
   sendResponse: (response?: any) => void
 ): boolean {
   switch (message.type) {
-    case 'GET_CURRENT_SLIDE': {
+    case MessageType.GET_CURRENT_SLIDE: {
       const slideNumber = getCurrentSlideNumber();
       sendResponse({ slideNumber });
       return false;
     }
-    case 'NEXT_SLIDE': {
+    case MessageType.NEXT_SLIDE: {
       const slideNumber = changeSlide('next');
       if (slideNumber !== null) {
         chrome.runtime.sendMessage({
-          type: 'SLIDE_NUMBER_CHANGED',
+          type: MessageType.SLIDE_NUMBER_CHANGED,
           slideNumber,
         });
       }
       sendResponse({ slideNumber });
       return false;
     }
-    case 'PREV_SLIDE': {
+    case MessageType.PREV_SLIDE: {
       const slideNumber = changeSlide('prev');
       if (slideNumber !== null) {
         chrome.runtime.sendMessage({
-          type: 'SLIDE_NUMBER_CHANGED',
+          type: MessageType.SLIDE_NUMBER_CHANGED,
           slideNumber,
         });
       }
@@ -91,7 +91,7 @@ function setupObserver(): void {
       const slideNumber = getCurrentSlideNumber();
       if (slideNumber !== null) {
         chrome.runtime.sendMessage({
-          type: 'SLIDE_NUMBER_CHANGED',
+          type: MessageType.SLIDE_NUMBER_CHANGED,
           slideNumber,
         });
       }
