@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BBB Slide Switcher</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <h1>BBB Slide Switcher</h1>
+    </header>
+
+    <main class="popup-main">
+      <div class="slide-display-section">
+        <p class="slide-label">Текущий слайд</p>
+        <div class="slide-number" id="slideNumber">-</div>
+      </div>
+
+      <div class="navigation-section">
+        <button id="prevButton" class="nav-button nav-button-prev" type="button">
+          ← Назад
+        </button>
+        <button id="nextButton" class="nav-button nav-button-next" type="button">
+          Вперёд →
+        </button>
+      </div>
+
+      <div class="toggle-section">
+        <label for="followPresenterToggle" class="toggle-label">
+          <input
+            type="checkbox"
+            id="followPresenterToggle"
+            class="toggle-checkbox"
+            checked
+          >
+          <span class="toggle-switch"></span>
+          <span class="toggle-text">Следовать за преподавателем</span>
+        </label>
+      </div>
+
+      <div class="sync-section">
+        <button id="syncButton" class="sync-button" type="button">
+          ↻ Восстановить слайд
+        </button>
+      </div>
+
+      <div class="status-area" id="statusArea"></div>
+    </main>
+  </div>
+
+  <script src="popup.ts"></script>
+</body>
+</html>
