@@ -74,6 +74,10 @@ function handleMessage(
       sendResponse({ slideNumber });
       return false;
     }
+    case MessageType.SET_FOLLOW_PRESENTER: {
+      sendResponse({ ok: true });
+      return false;
+    }
     default:
       return false;
   }

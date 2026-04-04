@@ -11,6 +11,7 @@ export enum MessageType {
 export interface Message {
   type: MessageType;
   slideNumber?: number;
+  followPresenter?: boolean;
 }
 
 export const STORAGE_KEYS = {
