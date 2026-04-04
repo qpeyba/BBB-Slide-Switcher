@@ -1,4 +1,4 @@
-import { Message, MessageType } from '../types';
+import { Message, MessageType, STORAGE_KEYS } from '../types';
 
 function handleMessage(
   message: Message,
@@ -7,11 +7,11 @@ function handleMessage(
 ): boolean | void {
   if (message.type === MessageType.SLIDE_NUMBER_CHANGED) {
     chrome.storage.local.set({
-      lastLiveSlide: message.slideNumber,
+      [STORAGE_KEYS.LAST_LIVE_SLIDE]: message.slideNumber,
     });
   } else if (message.type === MessageType.GET_LAST_SLIDE) {
-    chrome.storage.local.get(['lastLiveSlide'], (result) => {
-      sendResponse({ slideNumber: result.lastLiveSlide || null });
+    chrome.storage.local.get([STORAGE_KEYS.LAST_LIVE_SLIDE], (result) => {
+      sendResponse({ slideNumber: result[STORAGE_KEYS.LAST_LIVE_SLIDE] || null });
     });
     return true;
   }
