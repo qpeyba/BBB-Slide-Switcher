@@ -6,7 +6,7 @@
   "permissions": ["storage", "activeTab"],
   "host_permissions": [
     "*://*/bigbluebutton/*",
-    "*://*.edu.*"
+    "*://*.edu/*"
   ],
   "action": {
     "default_popup": "src/popup/popup.html",
@@ -17,7 +17,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*/bigbluebutton/*", "*://*.edu.*"],
+      "matches": ["*://*/bigbluebutton/*", "*://*.edu/*"],
       "js": ["src/content/content.ts"]
     }
   ]
