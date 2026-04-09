@@ -9,6 +9,8 @@ function handleMessage(
     chrome.storage.local.set({
       [STORAGE_KEYS.LAST_LIVE_SLIDE]: message.slideNumber,
     });
+    chrome.runtime.sendMessage(message).catch(() => {
+    });
   } else if (message.type === MessageType.GET_LAST_SLIDE) {
     chrome.storage.local.get([STORAGE_KEYS.LAST_LIVE_SLIDE], (result) => {
       sendResponse({ slideNumber: result[STORAGE_KEYS.LAST_LIVE_SLIDE] || null });
@@ -18,6 +20,3 @@ function handleMessage(
 }
 
 chrome.runtime.onMessage.addListener(handleMessage);
-
-
-
