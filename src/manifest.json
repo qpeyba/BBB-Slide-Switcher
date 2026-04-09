@@ -17,7 +17,11 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*/bigbluebutton/*", "*://*.edu/*"],
+      "matches": [
+        "*://*/bigbluebutton/*",
+        "*://*.edu/*",
+        "*://*/html5client/*"
+      ],
       "js": ["src/content/content.ts"]
     }
   ]
