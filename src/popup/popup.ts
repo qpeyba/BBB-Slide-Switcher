@@ -8,6 +8,11 @@ const followPresenterToggle = document.getElementById(
 ) as HTMLInputElement;
 const syncButton = document.getElementById('syncButton') as HTMLButtonElement;
 
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes[STORAGE_KEYS.LAST_LIVE_SLIDE]) {
+    handleSlideNumberChanged({ type: MessageType.SLIDE_NUMBER_CHANGED } as Message);
+  }
+});
 
 async function updateSlideNumber(): Promise<number | null> {
   try {
