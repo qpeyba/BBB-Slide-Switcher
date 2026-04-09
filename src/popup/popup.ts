@@ -8,11 +8,22 @@ const followPresenterToggle = document.getElementById(
 ) as HTMLInputElement;
 const syncButton = document.getElementById('syncButton') as HTMLButtonElement;
 
-chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === 'local' && changes[STORAGE_KEYS.LAST_LIVE_SLIDE]) {
-    handleSlideNumberChanged({ type: MessageType.SLIDE_NUMBER_CHANGED } as Message);
+let pollInterval: number | null = null;
+
+function startPolling(): void {
+  if (pollInterval) return;
+
+  pollInterval = window.setInterval(() => {
+    updateSlideNumber();
+  }, 1000);
+}
+
+function stopPolling(): void {
+  if (pollInterval) {
+    window.clearInterval(pollInterval);
+    pollInterval = null;
   }
-});
+}
 
 async function updateSlideNumber(): Promise<number | null> {
   try {
@@ -116,6 +127,12 @@ async function toggleFollowPresenter(): Promise<void> {
     [STORAGE_KEYS.FOLLOW_PRESENTER]: isChecked,
   });
 
+  if (isChecked) {
+    startPolling();
+  } else {
+    stopPolling();
+  }
+
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tabs[0]?.id) return;
 
@@ -141,6 +158,10 @@ function initializePopup(): void {
   chrome.storage.local.get([STORAGE_KEYS.FOLLOW_PRESENTER], (result) => {
     const followPresenter = result[STORAGE_KEYS.FOLLOW_PRESENTER] !== false;
     followPresenterToggle.checked = followPresenter;
+
+    if (followPresenter) {
+      startPolling();
+    }
   });
 
   updateSlideNumber().then((slideNumber) => {
