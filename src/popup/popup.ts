@@ -143,7 +143,17 @@ function initializePopup(): void {
     followPresenterToggle.checked = followPresenter;
   });
 
-  updateSlideNumber();
+  updateSlideNumber().then((slideNumber) => {
+    if (slideNumber !== null) {
+      chrome.storage.local.get([STORAGE_KEYS.LAST_LIVE_SLIDE], (result) => {
+        if (!result[STORAGE_KEYS.LAST_LIVE_SLIDE]) {
+          chrome.storage.local.set({
+            [STORAGE_KEYS.LAST_LIVE_SLIDE]: slideNumber,
+          });
+        }
+      });
+    }
+  });
 
   prevButton.addEventListener('click', handlePrevSlide);
   nextButton.addEventListener('click', handleNextSlide);
