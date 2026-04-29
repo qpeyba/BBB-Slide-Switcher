@@ -6,7 +6,8 @@
   "permissions": ["storage", "activeTab"],
   "host_permissions": [
     "*://*/bigbluebutton/*",
-    "*://*.edu/*"
+    "*://*.edu/*",
+    "*://mybbb.local/*"
   ],
   "action": {
     "default_popup": "src/popup/popup.html",
@@ -20,7 +21,8 @@
       "matches": [
         "*://*/bigbluebutton/*",
         "*://*.edu/*",
-        "*://*/html5client/*"
+        "*://*/html5client/*",
+        "*://mybbb.local/*"
       ],
       "js": ["src/content/content.ts"]
     }
