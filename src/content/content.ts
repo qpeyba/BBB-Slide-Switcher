@@ -16,6 +16,7 @@ let followPresenter = true;
 let localSlideNumber: number | null = null;
 let ignoredSlideNumber: number | null = null;
 let lastLiveSlideNumber: number | null = null;
+let isHoldingLocalSlide = false;
 let lastLoggedSlideSrc: string | null = null;
 let debounceTimer: number;
 let observer: MutationObserver | null = null;
@@ -160,12 +161,23 @@ function setupObserver(): void {
 
       if (slideNumber === ignoredSlideNumber) {
         ignoredSlideNumber = null;
+        isHoldingLocalSlide = !followPresenter && slideNumber === localSlideNumber;
         debugLog('ignored extension mutation', slideNumber);
+        return;
+      }
+
+      if (
+        !followPresenter &&
+        isHoldingLocalSlide &&
+        slideNumber === localSlideNumber
+      ) {
+        debugLog('ignored local slide rerender', slideNumber);
         return;
       }
 
       if (slideNumber === lastLiveSlideNumber) return;
 
+      isHoldingLocalSlide = false;
       lastLiveSlideNumber = slideNumber;
       notifyLiveSlideChanged(slideNumber);
       debugLog('live slide changed', slideNumber);
@@ -196,6 +208,7 @@ function initialize(): void {
   followPresenter = true;
   localSlideNumber = getCurrentSlideNumber();
   lastLiveSlideNumber = localSlideNumber;
+  isHoldingLocalSlide = false;
   chrome.storage.local.set({
     [STORAGE_KEYS.FOLLOW_PRESENTER]: true,
   });
