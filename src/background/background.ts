@@ -8,14 +8,16 @@ function handleMessage(
   if (message.type === MessageType.LIVE_SLIDE_CHANGED) {
     chrome.storage.local.set({
       [STORAGE_KEYS.LAST_LIVE_SLIDE]: message.slideNumber,
-    });
-    chrome.runtime.sendMessage(message).catch(() => {
+    }, () => {
+      chrome.runtime.sendMessage(message).catch(() => {
+      });
     });
   } else if (message.type === MessageType.SLIDE_NUMBER_CHANGED) {
     chrome.storage.local.set({
       [STORAGE_KEYS.LOCAL_SLIDE]: message.slideNumber,
-    });
-    chrome.runtime.sendMessage(message).catch(() => {
+    }, () => {
+      chrome.runtime.sendMessage(message).catch(() => {
+      });
     });
   } else if (message.type === MessageType.GET_LAST_SLIDE) {
     chrome.storage.local.get([STORAGE_KEYS.LAST_LIVE_SLIDE], (result) => {

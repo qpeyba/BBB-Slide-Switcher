@@ -140,6 +140,10 @@ function handleMessage(
       sendResponse({ ok: true });
       return false;
     }
+    case MessageType.GET_FOLLOW_PRESENTER: {
+      sendResponse({ followPresenter });
+      return false;
+    }
     default:
       return false;
   }
@@ -153,8 +157,6 @@ function setupObserver(): void {
     debounceTimer = window.setTimeout(() => {
       const slideNumber = getCurrentSlideNumber();
       if (slideNumber === null) return;
-
-      if (slideNumber === lastSeenSlideNumber) return;
 
       if (slideNumber === ignoredSlideNumber) {
         ignoredSlideNumber = null;

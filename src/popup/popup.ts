@@ -53,6 +53,21 @@ async function getLastLiveSlide(): Promise<number | null> {
   });
 }
 
+async function getFollowPresenter(): Promise<boolean | null> {
+  const tabId = await getActiveTabId();
+  if (tabId === null) return null;
+
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: MessageType.GET_FOLLOW_PRESENTER,
+    } as Message);
+    return response?.followPresenter ?? null;
+  } catch (error) {
+    console.error('Failed to get follow presenter state:', error);
+    return null;
+  }
+}
+
 async function updateLastLiveSlide(): Promise<number | null> {
   const slideNumber = await getLastLiveSlide();
   lastLiveSlideDisplay.textContent = slideNumber !== null ? String(slideNumber) : '-';
@@ -200,7 +215,16 @@ function handleSlideNumberChanged(message: Message): void {
   }
 }
 
-function initializePopup(): void {
+async function initializeFollowPresenter(): Promise<void> {
+  const contentFollowPresenter = await getFollowPresenter();
+  if (contentFollowPresenter !== null) {
+    followPresenterToggle.checked = contentFollowPresenter;
+    if (contentFollowPresenter) {
+      startPolling();
+    }
+    return;
+  }
+
   chrome.storage.local.get([STORAGE_KEYS.FOLLOW_PRESENTER], (result) => {
     const followPresenter = result[STORAGE_KEYS.FOLLOW_PRESENTER] !== false;
     followPresenterToggle.checked = followPresenter;
@@ -209,7 +233,10 @@ function initializePopup(): void {
       startPolling();
     }
   });
+}
 
+function initializePopup(): void {
+  initializeFollowPresenter();
   updateSlideNumber();
   updateLastLiveSlide();
 
