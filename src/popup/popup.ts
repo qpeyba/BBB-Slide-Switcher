@@ -104,15 +104,10 @@ async function handleSyncToLive(): Promise<void> {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tabs[0]?.id) return;
 
-    const diff = lastLiveSlide - currentSlide;
-    const messageType = diff > 0 ? MessageType.NEXT_SLIDE : MessageType.PREV_SLIDE;
-    const steps = Math.abs(diff);
-
-    for (let i = 0; i < steps; i++) {
-      await chrome.tabs.sendMessage(tabs[0].id, {
-        type: messageType,
-      } as Message);
-    }
+    await chrome.tabs.sendMessage(tabs[0].id, {
+      type: MessageType.GO_TO_SLIDE,
+      slideNumber: lastLiveSlide,
+    } as Message);
 
     await updateSlideNumber();
   } catch (error) {

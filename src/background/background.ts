@@ -5,10 +5,13 @@ function handleMessage(
   sender: chrome.runtime.MessageSender,
   sendResponse: (response?: any) => void
 ): boolean | void {
-  if (message.type === MessageType.SLIDE_NUMBER_CHANGED) {
+  if (message.type === MessageType.LIVE_SLIDE_CHANGED) {
     chrome.storage.local.set({
       [STORAGE_KEYS.LAST_LIVE_SLIDE]: message.slideNumber,
     });
+    chrome.runtime.sendMessage(message).catch(() => {
+    });
+  } else if (message.type === MessageType.SLIDE_NUMBER_CHANGED) {
     chrome.runtime.sendMessage(message).catch(() => {
     });
   } else if (message.type === MessageType.GET_LAST_SLIDE) {
