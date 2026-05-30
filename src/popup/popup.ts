@@ -11,10 +11,22 @@ const syncButton = document.getElementById('syncButton') as HTMLButtonElement;
 const statusArea = document.getElementById('statusArea') as HTMLDivElement;
 
 let pollInterval: number | null = null;
+let statusTimer: number | null = null;
 
 function setStatus(message: string, type: 'success' | 'error' | 'info' | 'empty'): void {
+  if (statusTimer !== null) {
+    window.clearTimeout(statusTimer);
+    statusTimer = null;
+  }
+
   statusArea.textContent = message;
   statusArea.className = `status-area ${type}`;
+
+  if (type === 'empty') return;
+
+  statusTimer = window.setTimeout(() => {
+    statusArea.classList.add('fading');
+  }, 1500);
 }
 
 function setContentControlsEnabled(enabled: boolean): void {
