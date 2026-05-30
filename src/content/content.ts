@@ -214,6 +214,10 @@ function initialize(): void {
   setupObserver();
 }
 
-initialize();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initialize);
+} else {
+  initialize();
+}
 
 export { getSlideImage, getCurrentSlideNumber, changeSlide, setSlideNumber };
