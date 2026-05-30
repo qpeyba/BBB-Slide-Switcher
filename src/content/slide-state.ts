@@ -83,6 +83,38 @@ export function hasSlideTransition(
   return false;
 }
 
+function hasSlideMutation(mutations: MutationRecord[], slideNumber: number): boolean {
+  for (const mutation of mutations) {
+    if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+      const oldSlide = mutation.oldValue
+        ? getSlideNumberFromUrl(mutation.oldValue)
+        : null;
+      const target = mutation.target;
+      const newSlide =
+        target instanceof HTMLImageElement ? getSlideNumberFromUrl(target.src) : null;
+
+      if (oldSlide === slideNumber || newSlide === slideNumber) {
+        return true;
+      }
+    }
+
+    if (mutation.type === 'childList') {
+      const removedSlides = Array.from(mutation.removedNodes).flatMap(
+        collectSlideNumbersFromNode
+      );
+      const addedSlides = Array.from(mutation.addedNodes).flatMap(
+        collectSlideNumbersFromNode
+      );
+
+      if (removedSlides.includes(slideNumber) || addedSlides.includes(slideNumber)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 export function reduceObservedSlide(
   state: SlideObserverState,
   slideNumber: number,
@@ -149,8 +181,14 @@ export function reduceObservedSlide(
       state.liveSlideNumber,
       slideNumber
     );
+    const presenterCaughtUpToLocal =
+      slideNumber === state.localSlideNumber &&
+      slideNumber === state.displayedSlideNumber &&
+      slideNumber !== state.liveSlideNumber &&
+      hasSlideMutation(mutations, slideNumber);
 
     const isPresenterChange = transitionFromLive ||
+      presenterCaughtUpToLocal ||
       (slideNumber !== state.displayedSlideNumber && state.pendingExtensionSlideNumber === null);
 
     const newLiveSlideNumber = isPresenterChange ? slideNumber : state.liveSlideNumber;
