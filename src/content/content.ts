@@ -20,6 +20,7 @@ let isHoldingLocalSlide = false;
 let lastLoggedSlideSrc: string | null = null;
 let debounceTimer: number;
 let observer: MutationObserver | null = null;
+let pendingMutations: MutationRecord[] = [];
 
 function debugLog(message: string, data?: unknown): void {
   if (!DEBUG) return;
@@ -91,6 +92,39 @@ function notifyLiveSlideChanged(slideNumber: number): void {
   });
 }
 
+function hasSlideTransition(
+  mutations: MutationRecord[],
+  fromSlide: number | null,
+  toSlide: number
+): boolean {
+  if (fromSlide === null) return false;
+
+  for (const mutation of mutations) {
+    if (mutation.type !== 'attributes' || mutation.attributeName !== 'src') {
+      continue;
+    }
+
+    const oldSlide = mutation.oldValue
+      ? getSlideNumberFromUrl(mutation.oldValue)
+      : null;
+    const target = mutation.target;
+    const newSlide =
+      target instanceof HTMLImageElement ? getSlideNumberFromUrl(target.src) : null;
+
+    if (oldSlide === fromSlide && newSlide === toSlide) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function setLiveSlideNumber(slideNumber: number): void {
+  lastLiveSlideNumber = slideNumber;
+  notifyLiveSlideChanged(slideNumber);
+  debugLog('live slide changed', slideNumber);
+}
+
 function changeSlide(direction: 'next' | 'prev'): number | null {
   const currentSlide = getCurrentSlideNumber();
   if (currentSlide === null) return null;
@@ -153,9 +187,12 @@ function handleMessage(
 function setupObserver(): void {
   if (observer) return;
 
-  observer = new MutationObserver(() => {
+  observer = new MutationObserver((mutations) => {
+    pendingMutations.push(...mutations);
     clearTimeout(debounceTimer);
     debounceTimer = window.setTimeout(() => {
+      const mutations = pendingMutations;
+      pendingMutations = [];
       const slideNumber = getCurrentSlideNumber();
       if (slideNumber === null) return;
 
@@ -169,33 +206,38 @@ function setupObserver(): void {
       if (
         !followPresenter &&
         isHoldingLocalSlide &&
-        slideNumber === localSlideNumber
+        slideNumber === localSlideNumber &&
+        !hasSlideTransition(mutations, lastLiveSlideNumber, slideNumber)
       ) {
         debugLog('ignored local slide rerender', slideNumber);
+        return;
+      }
+
+      if (!followPresenter) {
+        if (slideNumber !== lastLiveSlideNumber) {
+          setLiveSlideNumber(slideNumber);
+        }
+
+        if (localSlideNumber !== null && localSlideNumber !== slideNumber) {
+          setSlideNumber(localSlideNumber);
+        }
+
         return;
       }
 
       if (slideNumber === lastLiveSlideNumber) return;
 
       isHoldingLocalSlide = false;
-      lastLiveSlideNumber = slideNumber;
-      notifyLiveSlideChanged(slideNumber);
-      debugLog('live slide changed', slideNumber);
+      setLiveSlideNumber(slideNumber);
 
-      if (followPresenter) {
-        localSlideNumber = slideNumber;
-        notifySlideNumberChanged(slideNumber);
-        return;
-      }
-
-      if (localSlideNumber !== null && localSlideNumber !== slideNumber) {
-        setSlideNumber(localSlideNumber);
-      }
+      localSlideNumber = slideNumber;
+      notifySlideNumberChanged(slideNumber);
     }, 200);
   });
 
   observer.observe(document.body, {
     attributes: true,
+    attributeOldValue: true,
     attributeFilter: ['src', 'style', 'class'],
     childList: true,
     subtree: true,
