@@ -190,20 +190,19 @@ function setupObserver(): void {
 
 chrome.runtime.onMessage.addListener(handleMessage);
 
-chrome.storage.local.get([STORAGE_KEYS.FOLLOW_PRESENTER], (result) => {
-  followPresenter = result[STORAGE_KEYS.FOLLOW_PRESENTER] !== false;
-  const slideNumber = getCurrentSlideNumber();
-  if (followPresenter && slideNumber !== null) {
-    localSlideNumber = slideNumber;
-    lastLiveSlideNumber = slideNumber;
-    notifyLiveSlideChanged(slideNumber);
-    notifySlideNumberChanged(slideNumber);
-  }
-});
-
 function initialize(): void {
+  followPresenter = true;
   localSlideNumber = getCurrentSlideNumber();
   lastLiveSlideNumber = localSlideNumber;
+  chrome.storage.local.set({
+    [STORAGE_KEYS.FOLLOW_PRESENTER]: true,
+  });
+
+  if (localSlideNumber !== null) {
+    notifyLiveSlideChanged(localSlideNumber);
+    notifySlideNumberChanged(localSlideNumber);
+  }
+
   setupObserver();
 }
 
