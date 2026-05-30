@@ -10,9 +10,9 @@ const DEBUG = false;
 
 let followPresenter = true;
 let localSlideNumber: number | null = null;
-let ignoredSlideNumber: number | null = null;
-let lastLiveSlideNumber: number | null = null;
-let isHoldingLocalSlide = false;
+let liveSlideNumber: number | null = null;
+let displayedSlideNumber: number | null = null;
+let pendingExtensionSlideNumber: number | null = null;
 let lastLoggedSlideSrc: string | null = null;
 let debounceTimer: number;
 let observer: MutationObserver | null = null;
@@ -38,19 +38,21 @@ function getCurrentSlideNumber(): number | null {
 }
 
 function setSlideNumber(slideNumber: number): number | null {
-  const img = getSlideImage();
-  if (!img) return null;
+  const currentSlide = getCurrentVisibleSlide();
+  if (!currentSlide) return null;
   if (slideNumber < 1) return null;
 
-  if (getCurrentSlideNumber() === slideNumber) {
+  if (currentSlide.slideNumber === slideNumber) {
     localSlideNumber = slideNumber;
+    displayedSlideNumber = slideNumber;
     return slideNumber;
   }
 
   if (setVisibleSlide(slideNumber) === null) return null;
 
-  ignoredSlideNumber = slideNumber;
+  pendingExtensionSlideNumber = slideNumber;
   localSlideNumber = slideNumber;
+  displayedSlideNumber = slideNumber;
   debugLog('local slide changed', slideNumber);
 
   return slideNumber;
@@ -98,9 +100,50 @@ function hasSlideTransition(
 }
 
 function setLiveSlideNumber(slideNumber: number): void {
-  lastLiveSlideNumber = slideNumber;
+  if (liveSlideNumber === slideNumber) return;
+
+  liveSlideNumber = slideNumber;
   notifyLiveSlideChanged(slideNumber);
   debugLog('live slide changed', slideNumber);
+}
+
+function processObservedSlide(mutations: MutationRecord[]): void {
+  const currentSlide = getCurrentVisibleSlide();
+  if (currentSlide === null) return;
+
+  const slideNumber = currentSlide.slideNumber;
+  const hasLiveTransition = hasSlideTransition(mutations, liveSlideNumber, slideNumber);
+
+  if (slideNumber === pendingExtensionSlideNumber) {
+    pendingExtensionSlideNumber = null;
+    displayedSlideNumber = slideNumber;
+    debugLog('ignored extension mutation', slideNumber);
+    return;
+  }
+
+  if (slideNumber === displayedSlideNumber && !hasLiveTransition) {
+    debugLog('ignored slide rerender', slideNumber);
+    return;
+  }
+
+  displayedSlideNumber = slideNumber;
+
+  if (!followPresenter) {
+    setLiveSlideNumber(slideNumber);
+
+    if (localSlideNumber !== null && localSlideNumber !== slideNumber) {
+      setSlideNumber(localSlideNumber);
+    }
+
+    return;
+  }
+
+  setLiveSlideNumber(slideNumber);
+
+  if (localSlideNumber !== slideNumber) {
+    localSlideNumber = slideNumber;
+    notifySlideNumberChanged(slideNumber);
+  }
 }
 
 function changeSlide(direction: 'next' | 'prev'): number | null {
@@ -171,45 +214,7 @@ function setupObserver(): void {
     debounceTimer = window.setTimeout(() => {
       const mutations = pendingMutations;
       pendingMutations = [];
-      const slideNumber = getCurrentSlideNumber();
-      if (slideNumber === null) return;
-
-      if (slideNumber === ignoredSlideNumber) {
-        ignoredSlideNumber = null;
-        isHoldingLocalSlide = !followPresenter && slideNumber === localSlideNumber;
-        debugLog('ignored extension mutation', slideNumber);
-        return;
-      }
-
-      if (
-        !followPresenter &&
-        isHoldingLocalSlide &&
-        slideNumber === localSlideNumber &&
-        !hasSlideTransition(mutations, lastLiveSlideNumber, slideNumber)
-      ) {
-        debugLog('ignored local slide rerender', slideNumber);
-        return;
-      }
-
-      if (!followPresenter) {
-        if (slideNumber !== lastLiveSlideNumber) {
-          setLiveSlideNumber(slideNumber);
-        }
-
-        if (localSlideNumber !== null && localSlideNumber !== slideNumber) {
-          setSlideNumber(localSlideNumber);
-        }
-
-        return;
-      }
-
-      if (slideNumber === lastLiveSlideNumber) return;
-
-      isHoldingLocalSlide = false;
-      setLiveSlideNumber(slideNumber);
-
-      localSlideNumber = slideNumber;
-      notifySlideNumberChanged(slideNumber);
+      processObservedSlide(mutations);
     }, 200);
   });
 
@@ -227,8 +232,9 @@ chrome.runtime.onMessage.addListener(handleMessage);
 function initialize(): void {
   followPresenter = true;
   localSlideNumber = getCurrentSlideNumber();
-  lastLiveSlideNumber = localSlideNumber;
-  isHoldingLocalSlide = false;
+  liveSlideNumber = localSlideNumber;
+  displayedSlideNumber = localSlideNumber;
+  pendingExtensionSlideNumber = null;
   chrome.storage.local.set({
     [STORAGE_KEYS.FOLLOW_PRESENTER]: true,
   });
