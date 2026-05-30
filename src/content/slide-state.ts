@@ -110,7 +110,28 @@ export function reduceObservedSlide(
     slideNumber
   );
 
-  if (slideNumber === state.displayedSlideNumber && !hasLiveTransition) {
+  if (
+    slideNumber === state.displayedSlideNumber &&
+    !hasLiveTransition &&
+    slideNumber === state.liveSlideNumber
+  ) {
+    return {
+      state,
+      effects: {
+        ignoreReason: 'rerender',
+        liveSlideNumber: null,
+        localSlideNumber: null,
+        restoreSlideNumber: null,
+      },
+    };
+  }
+
+  if (
+    !state.followPresenter &&
+    slideNumber === state.liveSlideNumber &&
+    slideNumber !== state.displayedSlideNumber &&
+    !hasLiveTransition
+  ) {
     return {
       state,
       effects: {
@@ -123,16 +144,27 @@ export function reduceObservedSlide(
   }
 
   if (!state.followPresenter) {
+    const transitionFromLive = hasSlideTransition(
+      mutations,
+      state.liveSlideNumber,
+      slideNumber
+    );
+
+    const isPresenterChange = transitionFromLive ||
+      (slideNumber !== state.displayedSlideNumber && state.pendingExtensionSlideNumber === null);
+
+    const newLiveSlideNumber = isPresenterChange ? slideNumber : state.liveSlideNumber;
+
     return {
       state: {
         ...state,
         displayedSlideNumber: slideNumber,
-        liveSlideNumber: slideNumber,
+        liveSlideNumber: newLiveSlideNumber,
       },
       effects: {
         ignoreReason: null,
         liveSlideNumber:
-          state.liveSlideNumber !== slideNumber ? slideNumber : null,
+          state.liveSlideNumber !== newLiveSlideNumber ? newLiveSlideNumber : null,
         localSlideNumber: null,
         restoreSlideNumber:
           state.localSlideNumber !== null && state.localSlideNumber !== slideNumber

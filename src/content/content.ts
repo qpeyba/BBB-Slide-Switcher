@@ -6,7 +6,7 @@ import {
 } from './slide';
 import { reduceObservedSlide } from './slide-state';
 
-const DEBUG = false;
+const DEBUG = true;
 
 let followPresenter = true;
 let localSlideNumber: number | null = null;
@@ -214,6 +214,10 @@ function initialize(): void {
   setupObserver();
 }
 
-initialize();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initialize);
+} else {
+  initialize();
+}
 
 export { getSlideImage, getCurrentSlideNumber, changeSlide, setSlideNumber };

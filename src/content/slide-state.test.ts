@@ -61,7 +61,48 @@ describe('slide observer state', () => {
     expect(result.state.liveSlideNumber).toBe(5);
   });
 
-  it('does not overwrite live slide on local slide rerender while unfollowed', () => {
+  it('detects presenter moving to local slide with transition mutation', () => {
+    const result = reduceObservedSlide(
+      baseState({
+        localSlideNumber: 5,
+        liveSlideNumber: 4,
+        displayedSlideNumber: 5,
+      }),
+      5,
+      [childListMutation(4, 5)]
+    );
+
+    expect(result.effects.liveSlideNumber).toBe(5);
+    expect(result.state.liveSlideNumber).toBe(5);
+  });
+
+  it('does not restore local slide on old live rerender before presenter catches up', () => {
+    const rerender = reduceObservedSlide(
+      baseState({
+        localSlideNumber: 5,
+        liveSlideNumber: 4,
+        displayedSlideNumber: 5,
+      }),
+      4,
+      []
+    );
+
+    expect(rerender.effects.ignoreReason).toBe('rerender');
+    expect(rerender.effects.restoreSlideNumber).toBeNull();
+    expect(rerender.state.liveSlideNumber).toBe(4);
+
+    const catchUp = reduceObservedSlide(
+      rerender.state,
+      5,
+      [childListMutation(4, 5)]
+    );
+
+    expect(catchUp.effects.liveSlideNumber).toBe(5);
+    expect(catchUp.effects.restoreSlideNumber).toBeNull();
+    expect(catchUp.state.liveSlideNumber).toBe(5);
+  });
+
+  it('does not update live slide on local slide rerender without transition', () => {
     const result = reduceObservedSlide(
       baseState({
         localSlideNumber: 3,
@@ -72,9 +113,9 @@ describe('slide observer state', () => {
       []
     );
 
-    expect(result.effects.ignoreReason).toBe('rerender');
     expect(result.effects.liveSlideNumber).toBeNull();
     expect(result.state.liveSlideNumber).toBe(5);
+    expect(result.effects.restoreSlideNumber).toBeNull();
   });
 
   it('updates live slide and restores local slide while unfollowed', () => {
