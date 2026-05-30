@@ -33,6 +33,13 @@ describe('slide helpers', () => {
     expect(selectVisibleSlideImage([hidden, visible])).toBe(visible);
   });
 
+  it('selects the largest visible slide image', () => {
+    const smaller = slideImage('https://bbb.local/presentation/svg/4', 400, 300);
+    const larger = slideImage('https://bbb.local/presentation/svg/5', 800, 600);
+
+    expect(selectVisibleSlideImage([smaller, larger])).toBe(larger);
+  });
+
   it('changes slide image src', () => {
     const image = slideImage('https://bbb.local/presentation/svg/4?foo=bar', 800, 600);
 

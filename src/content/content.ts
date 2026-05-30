@@ -1,15 +1,11 @@
 import { MessageType, Message, STORAGE_KEYS } from '../types';
 import {
+  findSlideImage,
+  getCurrentVisibleSlide,
   getSlideNumberFromUrl,
-  selectVisibleSlideImage,
-  setSlideImageNumber,
+  setVisibleSlide,
 } from './slide';
 
-const SLIDE_SELECTORS = [
-  '#slide-background-shape_image',
-  'img[alt="tl_image_asset"]',
-  'img[src*="/svg/"]',
-];
 const DEBUG = false;
 
 let followPresenter = true;
@@ -27,23 +23,8 @@ function debugLog(message: string, data?: unknown): void {
   console.debug(`[BBB Slide Switcher] ${message}`, data ?? '');
 }
 
-function isSlideImage(element: Element): element is HTMLImageElement {
-  return element instanceof HTMLImageElement && getSlideNumberFromUrl(element.src) !== null;
-}
-
 function getSlideImage(): HTMLImageElement | null {
-  const images: HTMLImageElement[] = [];
-
-  for (const selector of SLIDE_SELECTORS) {
-    const elements = document.querySelectorAll(selector);
-    for (const element of elements) {
-      if (isSlideImage(element) && !images.includes(element)) {
-        images.push(element);
-      }
-    }
-  }
-
-  const image = selectVisibleSlideImage(images);
+  const image = findSlideImage();
   if (image && image.src !== lastLoggedSlideSrc) {
     lastLoggedSlideSrc = image.src;
     debugLog('found slide image', image.src);
@@ -53,10 +34,7 @@ function getSlideImage(): HTMLImageElement | null {
 }
 
 function getCurrentSlideNumber(): number | null {
-  const img = getSlideImage();
-  if (!img) return null;
-
-  return getSlideNumberFromUrl(img.src);
+  return getCurrentVisibleSlide()?.slideNumber || null;
 }
 
 function setSlideNumber(slideNumber: number): number | null {
@@ -69,7 +47,7 @@ function setSlideNumber(slideNumber: number): number | null {
     return slideNumber;
   }
 
-  if (setSlideImageNumber(img, slideNumber) === null) return null;
+  if (setVisibleSlide(slideNumber) === null) return null;
 
   ignoredSlideNumber = slideNumber;
   localSlideNumber = slideNumber;
