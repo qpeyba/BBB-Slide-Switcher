@@ -16,7 +16,14 @@ export interface Message {
   followPresenter?: boolean;
 }
 
+export interface SlideState {
+  followPresenter: boolean;
+  lastLiveSlide: number | null;
+  localSlide: number | null;
+}
+
 export const STORAGE_KEYS = {
   FOLLOW_PRESENTER: 'followPresenter',
   LAST_LIVE_SLIDE: 'lastLiveSlide',
+  LOCAL_SLIDE: 'localSlide',
 } as const;

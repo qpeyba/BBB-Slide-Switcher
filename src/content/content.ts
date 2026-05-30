@@ -8,7 +8,7 @@ const SLIDE_SELECTORS = [
 const SLIDE_SRC_PATTERN = /\/svg\/(\d+)([?#].*)?$/;
 
 let followPresenter = true;
-let selectedSlideNumber: number | null = null;
+let localSlideNumber: number | null = null;
 let ignoredSlideNumber: number | null = null;
 let lastSeenSlideNumber: number | null = null;
 let debounceTimer: number;
@@ -58,13 +58,13 @@ function setSlideNumber(slideNumber: number): number | null {
     (_match, _currentSlide, suffix = '') => `/svg/${slideNumber}${suffix}`
   );
   if (newSrc === img.src) {
-    selectedSlideNumber = slideNumber;
+    localSlideNumber = slideNumber;
     return slideNumber;
   }
 
   ignoredSlideNumber = slideNumber;
   img.src = newSrc;
-  selectedSlideNumber = slideNumber;
+  localSlideNumber = slideNumber;
 
   return slideNumber;
 }
@@ -158,13 +158,13 @@ function setupObserver(): void {
       notifyLiveSlideChanged(slideNumber);
 
       if (followPresenter) {
-        selectedSlideNumber = slideNumber;
+        localSlideNumber = slideNumber;
         notifySlideNumberChanged(slideNumber);
         return;
       }
 
-      if (selectedSlideNumber !== null && selectedSlideNumber !== slideNumber) {
-        setSlideNumber(selectedSlideNumber);
+      if (localSlideNumber !== null && localSlideNumber !== slideNumber) {
+        setSlideNumber(localSlideNumber);
       }
     }, 200);
   });
@@ -183,15 +183,16 @@ chrome.storage.local.get([STORAGE_KEYS.FOLLOW_PRESENTER], (result) => {
   followPresenter = result[STORAGE_KEYS.FOLLOW_PRESENTER] !== false;
   const slideNumber = getCurrentSlideNumber();
   if (followPresenter && slideNumber !== null) {
-    selectedSlideNumber = slideNumber;
+    localSlideNumber = slideNumber;
     lastSeenSlideNumber = slideNumber;
     notifyLiveSlideChanged(slideNumber);
+    notifySlideNumberChanged(slideNumber);
   }
 });
 
 function initialize(): void {
-  selectedSlideNumber = getCurrentSlideNumber();
-  lastSeenSlideNumber = selectedSlideNumber;
+  localSlideNumber = getCurrentSlideNumber();
+  lastSeenSlideNumber = localSlideNumber;
   setupObserver();
 }
 
