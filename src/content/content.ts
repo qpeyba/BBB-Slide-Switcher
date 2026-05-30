@@ -6,13 +6,20 @@ const SLIDE_SELECTORS = [
   'img[src*="/svg/"]',
 ];
 const SLIDE_SRC_PATTERN = /\/svg\/(\d+)([?#].*)?$/;
+const DEBUG = false;
 
 let followPresenter = true;
 let localSlideNumber: number | null = null;
 let ignoredSlideNumber: number | null = null;
 let lastSeenSlideNumber: number | null = null;
+let lastLoggedSlideSrc: string | null = null;
 let debounceTimer: number;
 let observer: MutationObserver | null = null;
+
+function debugLog(message: string, data?: unknown): void {
+  if (!DEBUG) return;
+  console.debug(`[BBB Slide Switcher] ${message}`, data ?? '');
+}
 
 function isSlideImage(element: Element): element is HTMLImageElement {
   return element instanceof HTMLImageElement && SLIDE_SRC_PATTERN.test(element.src);
@@ -35,7 +42,13 @@ function getSlideImage(): HTMLImageElement | null {
     }
   }
 
-  return images.find(isVisible) || images[0] || null;
+  const image = images.find(isVisible) || images[0] || null;
+  if (image && image.src !== lastLoggedSlideSrc) {
+    lastLoggedSlideSrc = image.src;
+    debugLog('found slide image', image.src);
+  }
+
+  return image;
 }
 
 function getCurrentSlideNumber(): number | null {
@@ -65,6 +78,7 @@ function setSlideNumber(slideNumber: number): number | null {
   ignoredSlideNumber = slideNumber;
   img.src = newSrc;
   localSlideNumber = slideNumber;
+  debugLog('local slide changed', slideNumber);
 
   return slideNumber;
 }
@@ -129,6 +143,7 @@ function handleMessage(
     }
     case MessageType.SET_FOLLOW_PRESENTER: {
       followPresenter = message.followPresenter === true;
+      debugLog('follow presenter changed', followPresenter);
       sendResponse({ ok: true });
       return false;
     }
@@ -151,11 +166,13 @@ function setupObserver(): void {
       if (slideNumber === ignoredSlideNumber) {
         ignoredSlideNumber = null;
         lastSeenSlideNumber = slideNumber;
+        debugLog('ignored extension mutation', slideNumber);
         return;
       }
 
       lastSeenSlideNumber = slideNumber;
       notifyLiveSlideChanged(slideNumber);
+      debugLog('live slide changed', slideNumber);
 
       if (followPresenter) {
         localSlideNumber = slideNumber;
