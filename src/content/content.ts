@@ -9,19 +9,33 @@ const SLIDE_SRC_PATTERN = /\/svg\/(\d+)([?#].*)?$/;
 
 let followPresenter = true;
 let selectedSlideNumber: number | null = null;
-let localChangeInProgress = false;
+let ignoredSlideNumber: number | null = null;
+let lastSeenSlideNumber: number | null = null;
 let debounceTimer: number;
 let observer: MutationObserver | null = null;
-let observerRetryTimer: number | null = null;
+
+function isSlideImage(element: Element): element is HTMLImageElement {
+  return element instanceof HTMLImageElement && SLIDE_SRC_PATTERN.test(element.src);
+}
+
+function isVisible(element: HTMLElement): boolean {
+  const rect = element.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
 
 function getSlideImage(): HTMLImageElement | null {
+  const images: HTMLImageElement[] = [];
+
   for (const selector of SLIDE_SELECTORS) {
-    const element = document.querySelector(selector);
-    if (element instanceof HTMLImageElement) {
-      return element;
+    const elements = document.querySelectorAll(selector);
+    for (const element of elements) {
+      if (isSlideImage(element) && !images.includes(element)) {
+        images.push(element);
+      }
     }
   }
-  return null;
+
+  return images.find(isVisible) || images[0] || null;
 }
 
 function getCurrentSlideNumber(): number | null {
@@ -48,7 +62,7 @@ function setSlideNumber(slideNumber: number): number | null {
     return slideNumber;
   }
 
-  localChangeInProgress = true;
+  ignoredSlideNumber = slideNumber;
   img.src = newSrc;
   selectedSlideNumber = slideNumber;
 
@@ -126,28 +140,21 @@ function handleMessage(
 function setupObserver(): void {
   if (observer) return;
 
-  const img = getSlideImage();
-  if (!img) {
-    if (observerRetryTimer === null) {
-      observerRetryTimer = window.setTimeout(() => {
-        observerRetryTimer = null;
-        setupObserver();
-      }, 500);
-    }
-    return;
-  }
-
   observer = new MutationObserver(() => {
     clearTimeout(debounceTimer);
     debounceTimer = window.setTimeout(() => {
       const slideNumber = getCurrentSlideNumber();
       if (slideNumber === null) return;
 
-      if (localChangeInProgress) {
-        localChangeInProgress = false;
+      if (slideNumber === lastSeenSlideNumber) return;
+
+      if (slideNumber === ignoredSlideNumber) {
+        ignoredSlideNumber = null;
+        lastSeenSlideNumber = slideNumber;
         return;
       }
 
+      lastSeenSlideNumber = slideNumber;
       notifyLiveSlideChanged(slideNumber);
 
       if (followPresenter) {
@@ -162,9 +169,11 @@ function setupObserver(): void {
     }, 200);
   });
 
-  observer.observe(img, {
+  observer.observe(document.body, {
     attributes: true,
-    attributeFilter: ['src'],
+    attributeFilter: ['src', 'style', 'class'],
+    childList: true,
+    subtree: true,
   });
 }
 
@@ -172,10 +181,17 @@ chrome.runtime.onMessage.addListener(handleMessage);
 
 chrome.storage.local.get([STORAGE_KEYS.FOLLOW_PRESENTER], (result) => {
   followPresenter = result[STORAGE_KEYS.FOLLOW_PRESENTER] !== false;
+  const slideNumber = getCurrentSlideNumber();
+  if (followPresenter && slideNumber !== null) {
+    selectedSlideNumber = slideNumber;
+    lastSeenSlideNumber = slideNumber;
+    notifyLiveSlideChanged(slideNumber);
+  }
 });
 
 function initialize(): void {
   selectedSlideNumber = getCurrentSlideNumber();
+  lastSeenSlideNumber = selectedSlideNumber;
   setupObserver();
 }
 
