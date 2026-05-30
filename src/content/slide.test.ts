@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  findSlideImage,
+  getCurrentVisibleSlide,
   getSlideNumberFromUrl,
   selectVisibleSlideImage,
+  setVisibleSlide,
   setSlideImageNumber,
   SlideImageLike,
 } from './slide';
@@ -45,5 +48,32 @@ describe('slide helpers', () => {
 
     expect(setSlideImageNumber(image, 9)).toBe(9);
     expect(image.src).toBe('https://bbb.local/presentation/svg/9?foo=bar');
+  });
+
+  it('finds the current visible slide from DOM', () => {
+    const root = document.createElement('div');
+    const hidden = document.createElement('img');
+    const visible = document.createElement('img');
+
+    hidden.src = 'https://bbb.local/presentation/svg/4';
+    visible.src = 'https://bbb.local/presentation/svg/7';
+    hidden.getBoundingClientRect = () => ({ width: 0, height: 0 } as DOMRect);
+    visible.getBoundingClientRect = () => ({ width: 800, height: 600 } as DOMRect);
+    root.append(hidden, visible);
+
+    expect(findSlideImage(root)).toBe(visible);
+    expect(getCurrentVisibleSlide(root)?.slideNumber).toBe(7);
+  });
+
+  it('sets the current visible slide in DOM', () => {
+    const root = document.createElement('div');
+    const image = document.createElement('img');
+
+    image.src = 'https://bbb.local/presentation/svg/4?foo=bar';
+    image.getBoundingClientRect = () => ({ width: 800, height: 600 } as DOMRect);
+    root.append(image);
+
+    expect(setVisibleSlide(8, root)).toBe(8);
+    expect(image.src).toBe('https://bbb.local/presentation/svg/8?foo=bar');
   });
 });

@@ -2,9 +2,9 @@ import { MessageType, Message, STORAGE_KEYS } from '../types';
 import {
   findSlideImage,
   getCurrentVisibleSlide,
-  getSlideNumberFromUrl,
   setVisibleSlide,
 } from './slide';
+import { reduceObservedSlide } from './slide-state';
 
 const DEBUG = false;
 
@@ -72,77 +72,44 @@ function notifyLiveSlideChanged(slideNumber: number): void {
   });
 }
 
-function hasSlideTransition(
-  mutations: MutationRecord[],
-  fromSlide: number | null,
-  toSlide: number
-): boolean {
-  if (fromSlide === null) return false;
-
-  for (const mutation of mutations) {
-    if (mutation.type !== 'attributes' || mutation.attributeName !== 'src') {
-      continue;
-    }
-
-    const oldSlide = mutation.oldValue
-      ? getSlideNumberFromUrl(mutation.oldValue)
-      : null;
-    const target = mutation.target;
-    const newSlide =
-      target instanceof HTMLImageElement ? getSlideNumberFromUrl(target.src) : null;
-
-    if (oldSlide === fromSlide && newSlide === toSlide) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function setLiveSlideNumber(slideNumber: number): void {
-  if (liveSlideNumber === slideNumber) return;
-
-  liveSlideNumber = slideNumber;
-  notifyLiveSlideChanged(slideNumber);
-  debugLog('live slide changed', slideNumber);
-}
-
 function processObservedSlide(mutations: MutationRecord[]): void {
   const currentSlide = getCurrentVisibleSlide();
   if (currentSlide === null) return;
 
   const slideNumber = currentSlide.slideNumber;
-  const hasLiveTransition = hasSlideTransition(mutations, liveSlideNumber, slideNumber);
+  const result = reduceObservedSlide(
+    {
+      followPresenter,
+      localSlideNumber,
+      liveSlideNumber,
+      displayedSlideNumber,
+      pendingExtensionSlideNumber,
+    },
+    slideNumber,
+    mutations
+  );
 
-  if (slideNumber === pendingExtensionSlideNumber) {
-    pendingExtensionSlideNumber = null;
-    displayedSlideNumber = slideNumber;
-    debugLog('ignored extension mutation', slideNumber);
+  localSlideNumber = result.state.localSlideNumber;
+  liveSlideNumber = result.state.liveSlideNumber;
+  displayedSlideNumber = result.state.displayedSlideNumber;
+  pendingExtensionSlideNumber = result.state.pendingExtensionSlideNumber;
+
+  if (result.effects.ignoreReason !== null) {
+    debugLog(`ignored ${result.effects.ignoreReason} mutation`, slideNumber);
     return;
   }
 
-  if (slideNumber === displayedSlideNumber && !hasLiveTransition) {
-    debugLog('ignored slide rerender', slideNumber);
-    return;
+  if (result.effects.liveSlideNumber !== null) {
+    notifyLiveSlideChanged(result.effects.liveSlideNumber);
+    debugLog('live slide changed', result.effects.liveSlideNumber);
   }
 
-  displayedSlideNumber = slideNumber;
-
-  if (!followPresenter) {
-    setLiveSlideNumber(slideNumber);
-
-    if (localSlideNumber !== null && localSlideNumber !== slideNumber) {
-      setSlideNumber(localSlideNumber);
-    }
-
-    return;
+  if (result.effects.localSlideNumber !== null) {
+    notifySlideNumberChanged(result.effects.localSlideNumber);
   }
 
-  setLiveSlideNumber(slideNumber);
-
-  if (localSlideNumber !== slideNumber) {
-    localSlideNumber = slideNumber;
-    notifySlideNumberChanged(slideNumber);
+  if (result.effects.restoreSlideNumber !== null) {
+    setSlideNumber(result.effects.restoreSlideNumber);
   }
 }
 
