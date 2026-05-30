@@ -1,11 +1,15 @@
 import { MessageType, Message, STORAGE_KEYS } from '../types';
+import {
+  getSlideNumberFromUrl,
+  selectVisibleSlideImage,
+  setSlideImageNumber,
+} from './slide';
 
 const SLIDE_SELECTORS = [
   '#slide-background-shape_image',
   'img[alt="tl_image_asset"]',
   'img[src*="/svg/"]',
 ];
-const SLIDE_SRC_PATTERN = /\/svg\/(\d+)([?#].*)?$/;
 const DEBUG = false;
 
 let followPresenter = true;
@@ -22,12 +26,7 @@ function debugLog(message: string, data?: unknown): void {
 }
 
 function isSlideImage(element: Element): element is HTMLImageElement {
-  return element instanceof HTMLImageElement && SLIDE_SRC_PATTERN.test(element.src);
-}
-
-function isVisible(element: HTMLElement): boolean {
-  const rect = element.getBoundingClientRect();
-  return rect.width > 0 && rect.height > 0;
+  return element instanceof HTMLImageElement && getSlideNumberFromUrl(element.src) !== null;
 }
 
 function getSlideImage(): HTMLImageElement | null {
@@ -42,7 +41,7 @@ function getSlideImage(): HTMLImageElement | null {
     }
   }
 
-  const image = images.find(isVisible) || images[0] || null;
+  const image = selectVisibleSlideImage(images);
   if (image && image.src !== lastLoggedSlideSrc) {
     lastLoggedSlideSrc = image.src;
     debugLog('found slide image', image.src);
@@ -55,8 +54,7 @@ function getCurrentSlideNumber(): number | null {
   const img = getSlideImage();
   if (!img) return null;
 
-  const match = img.src.match(SLIDE_SRC_PATTERN);
-  return match ? parseInt(match[1], 10) : null;
+  return getSlideNumberFromUrl(img.src);
 }
 
 function setSlideNumber(slideNumber: number): number | null {
@@ -64,19 +62,14 @@ function setSlideNumber(slideNumber: number): number | null {
   if (!img) return null;
   if (slideNumber < 1) return null;
 
-  if (!SLIDE_SRC_PATTERN.test(img.src)) return null;
-
-  const newSrc = img.src.replace(
-    SLIDE_SRC_PATTERN,
-    (_match, _currentSlide, suffix = '') => `/svg/${slideNumber}${suffix}`
-  );
-  if (newSrc === img.src) {
+  if (getCurrentSlideNumber() === slideNumber) {
     localSlideNumber = slideNumber;
     return slideNumber;
   }
 
+  if (setSlideImageNumber(img, slideNumber) === null) return null;
+
   ignoredSlideNumber = slideNumber;
-  img.src = newSrc;
   localSlideNumber = slideNumber;
   debugLog('local slide changed', slideNumber);
 
