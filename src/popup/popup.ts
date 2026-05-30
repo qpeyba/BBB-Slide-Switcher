@@ -95,12 +95,6 @@ async function handleSyncToLive(): Promise<void> {
       return;
     }
 
-    const currentSlide = await updateSlideNumber();
-    if (currentSlide === null) {
-      alert('Unable to retrieve current slide');
-      return;
-    }
-
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tabs[0]?.id) return;
 
